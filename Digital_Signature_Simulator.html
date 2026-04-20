@@ -1,0 +1,179 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數位簽章模擬器 - 離線教學版</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 { text-align: center; color: #1a73e8; font-size: 24px; }
+        .section { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; }
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input:focus, textarea:focus { border-color: #1a73e8; outline: none; }
+        .result-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 5px solid #1a73e8;
+            word-break: break-all;
+            font-family: monospace;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        .btn {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .btn:hover { background-color: #1557b0; }
+        #status {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .hint { margin-top: 25px; font-size: 13px; color: #666; line-height: 1.6; background: #e8f0fe; padding: 15px; border-radius: 8px;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔑 數位簽章互動模擬器</h1>
+    <p style="font-size: 14px; color: #666; margin-bottom: 20px; text-align:center;">這是一個可離線使用的教學工具，用以展示「非對稱加密」如何保護區塊鏈上的交易。</p>
+
+    <div class="section">
+        <label>1. 輸入交易內容 (Transaction Data)</label>
+        <textarea id="data" rows="2" placeholder="例如：轉帳 0.5 BTC 給 Alice">轉帳 0.5 BTC 給 Alice</textarea>
+    </div>
+
+    <div class="section">
+        <label>2. 輸入你的私鑰 (Private Key)</label>
+        <input type="password" id="privKey" value="SECRET_KEY_789">
+    </div>
+
+    <div class="section">
+        <label>⚙️ 產生的數位簽章 (Digital Signature)</label>
+        <div id="signature" class="result-box">系統正在計算簽章...</div>
+    </div>
+
+    <button class="btn" onclick="verify()">模擬區塊鏈網路驗證</button>
+
+    <div id="status"></div>
+
+    <div class="hint">
+        <b>💡 教學演示技巧：</b><br>
+        1. <b>展示簽章生成：</b> 說明當「交易內容」或「私鑰」有任何更動，下方的簽章字串就會產生巨大的變化（雪崩效應）。<br>
+        2. <b>展示防竄改：</b> 請先點擊驗證（應為成功）。接著，偷偷把交易內容的「0.5 BTC」改成「5.0 BTC」，但不修改私鑰。再次點擊驗證，系統會跳出警告，說明這是一筆被竄改的無效交易。
+    </div>
+</div>
+
+<script>
+    let originalData = "轉帳 0.5 BTC 給 Alice";
+    let originalKey = "SECRET_KEY_789";
+    let currentSignature = "";
+    
+    // 簡單的雜湊模擬函數 (教學用)
+    function simpleHash(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash |= 0;
+        }
+        return Math.abs(hash).toString(16).padStart(12, '0');
+    }
+
+    function generateSignature(data, key) {
+        // 模擬：用私鑰對資料的雜湊值進行加密
+        let dataHash = simpleHash(data);
+        let keyHash = simpleHash(key);
+        return "SIG_" + simpleHash(dataHash + keyHash).toUpperCase() + "-" + simpleHash(keyHash + dataHash).toUpperCase();
+    }
+
+    function updateSignature() {
+        const data = document.getElementById('data').value;
+        const key = document.getElementById('privKey').value;
+        const statusDiv = document.getElementById('status');
+        
+        // 如果內容有變動，隱藏先前的驗證結果
+        statusDiv.style.display = 'none';
+
+        currentSignature = generateSignature(data, key);
+        document.getElementById('signature').innerText = currentSignature;
+    }
+
+    function verify() {
+        const statusDiv = document.getElementById('status');
+        const data = document.getElementById('data').value;
+        const key = document.getElementById('privKey').value;
+
+        statusDiv.style.display = 'block';
+        
+        // 模擬驗證：實際區塊鏈會用「公鑰」驗證。此處為了前端模擬，判斷邏輯如下：
+        // 假設這筆交易「原本」應該是由 originalKey 簽發 originalData
+        // 如果現在的畫面輸入跟原本預期的不一致，驗證就會失敗
+        
+        // 紀錄：使用者簽名當下的資料
+        let expectedSignature = generateSignature(data, key);
+
+        if (data === originalData && key === originalKey) {
+            statusDiv.className = 'success';
+            statusDiv.innerText = "✅ 驗證成功：公鑰已確認此簽章是由持有私鑰者發出，且資料完整無誤。";
+        } else if (key !== originalKey) {
+            statusDiv.className = 'error';
+            statusDiv.innerText = "❌ 驗證失敗：私鑰不正確，或者這不是由發送者本人的私鑰簽發的！";
+        } else if (data !== originalData) {
+            statusDiv.className = 'error';
+            statusDiv.innerText = "❌ 驗證失敗：交易內容已被竄改，目前的簽章與原本的授權不符！";
+        }
+    }
+
+    // 監聽輸入框的改變，即時更新簽章
+    document.getElementById('data').addEventListener('input', updateSignature);
+    document.getElementById('privKey').addEventListener('input', updateSignature);
+
+    // 初始化執行一次
+    updateSignature();
+</script>
+
+</body>
+</html>
